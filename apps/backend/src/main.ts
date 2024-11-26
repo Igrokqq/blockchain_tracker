@@ -12,19 +12,25 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const kafkaConfig = app.get(KafkaConfig)
 
-  app.enableCors();
-  app.useGlobalPipes(new ValidationPipe())
-
-  // Настройка Kafka как микросервиса
+  app.enableCors({ origin: '*' });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
     options: {
       client: {
-        clientId: kafkaConfig.clientId, // Идентификатор клиента
-        brokers: kafkaConfig.brokers, // Параметры брокера
+        clientId: kafkaConfig.clientId,
+        brokers: kafkaConfig.brokers,
       },
       consumer: {
-        groupId: kafkaConfig.consumerGroupId, // Группа потребителей
+        groupId: kafkaConfig.consumerGroupId,
         allowAutoTopicCreation: true
       },
     },

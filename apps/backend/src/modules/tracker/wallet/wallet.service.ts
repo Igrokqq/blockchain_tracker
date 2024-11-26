@@ -1,44 +1,70 @@
 import { Injectable } from "@nestjs/common";
 import { Wallet } from "@prisma/client";
 import { PrismaService } from "src/common/modules/prisma/prisma.service";
+import GetWalletsDto from "./dto/get-wallets.dto";
 
 @Injectable()
 export default class WalletService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createWallet(address: string) {
-    await this.prisma.wallet.upsert({
+  async createWallet(userId: string, address: string) {
+    return this.prisma.wallet.upsert({
       where: { address },
-      create: { address, active: true },
-      update: { active: true },
+      create: {
+        address,
+        active: true,
+        users: {
+          connect: { id: userId },
+        },
+      },
+      update: {
+        active: true,
+        users: {
+          connect: { id: userId },
+        },
+      },
     });
   }
 
-  async untrackAddress(address: string) {
-    await this.prisma.wallet.delete({
-      where: { address },
+  async untrackAddress(userId: string, walletId: string) {
+    return this.prisma.wallet.update({
+      where: { id: walletId },
+      data: {
+        users: {
+          disconnect: { id: userId },
+        },
+      },
     });
   }
 
-  async enableTracking(address: string) {
-    await this.prisma.wallet.update({
-      where: { address },
-      data: { active: true },
-    });
-  }
+  // async enableTracking(address: string) {
+  //   await this.prisma.wallet.update({
+  //     where: { address },
+  //     data: { active: true },
+  //   });
+  // }
 
-  async disableTracking(address: string) {
-    await this.prisma.wallet.update({
-      where: { address },
-      data: { active: false },
-    });
-  }
+  // async disableTracking(address: string) {
+  //   await this.prisma.wallet.update({
+  //     where: { address },
+  //     data: { active: false },
+  //   });
+  // }
 
-  async getwalletes(): Promise<string[]> {
-    const addresses = await this.prisma.wallet.findMany({
+  async getWallets(dto: GetWalletsDto): Promise<Wallet[]> {
+    const wallets = await this.prisma.wallet.findMany({
       where: { active: true },
     });
-    return addresses.map((record) => record.address);
+
+    return wallets;
+  }
+
+  async getUserWallets(userId: string, dto: GetWalletsDto): Promise<Wallet[]> {
+    const wallets = await this.prisma.wallet.findMany({
+      where: { active: true, users: { some: { id: userId } } },
+    });
+
+    return wallets;
   }
 
   async getWalletByAddress(address: string): Promise<Wallet> {

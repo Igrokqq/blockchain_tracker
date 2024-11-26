@@ -19,6 +19,7 @@ model User {
   password  String
   firstName String?
   lastName  String?
+  wallets   Wallet[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -52,6 +53,7 @@ enum TransactionStatus {
   Unconfirmed
 }
 
+// TODO: make address as primary key. There is no need in ID field in this table
 model Wallet {
   id        String   @id @default(cuid())
   address   String   @unique
@@ -62,6 +64,7 @@ model Wallet {
   lastBlockNumber String? @map("last_block_number")
 
   transactions Transaction[]
+  users        User[]
 
   @@map("wallets")
 }

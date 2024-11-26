@@ -4,11 +4,13 @@ import TrackedAddressModule from "./wallet/wallet.module";
 import { TrackerController } from "./tracker.controller";
 import { ClientsModule, Transport } from "@nestjs/microservices";
 import KafkaConfig from "src/common/config/kafka";
+import TransactionModule from "./transaction/transaction.module";
 
 @Module({
   imports: [
     TrackedAddressModule,
-    EthereumModule
+    EthereumModule,
+    TransactionModule
   ],
   controllers: [TrackerController]
 })

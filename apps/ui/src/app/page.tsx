@@ -1,10 +1,18 @@
-import { Button } from "./components/ui/button";
+'use client';
 
-// src/app/page.tsx or src/pages/index.tsx
-export default function Home() {
-  return (
-    <div className="flex justify-center items-center h-screen">
-      <Button>Click Me</Button>
-    </div>
-  );
+import { useRouter } from 'next/navigation';
+import { useAuthCheck } from './utils/authCheck';
+
+export default function App() {
+  const router = useRouter();
+  const isAuthenticated = useAuthCheck();
+
+  if (!isAuthenticated) {
+    router.push('/login');
+    return <div>Redirecting to login...</div>;
+  }
+
+  router.push('/dashboard');
+
+  return null;
 }

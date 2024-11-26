@@ -10,8 +10,7 @@ export class EthereumService {
   private logger = new Logger(EthereumService.name)
 
   constructor(private prisma: PrismaService, private walletService: WalletService) {
-    // Указываем URL RPC
-    this.web3 = new Web3('https://rpc.ankr.com/eth'); // Замените на другой RPC, если нужно
+    this.web3 = new Web3('https://rpc.ankr.com/eth');
   }
 
   async getTransactionStatus(txHash: string): Promise<TransactionStatus> {
@@ -33,15 +32,14 @@ export class EthereumService {
     if (receipt) {
       const status = receipt.status ? 'Success' : 'Failed';
 
-      // Обновление записи в базе данных
       await this.prisma.transaction.update({
         where: { hash: txHash },
         data: { status },
       });
 
-      console.log(`Статус транзакции ${txHash} обновлён: ${status}`);
+      console.log(`Transaction status ${txHash} updated: ${status}`);
     } else {
-      console.log(`Транзакция ${txHash} ещё не подтверждена.`);
+      console.log(`Transaction ${txHash} still not confirmed.`);
     }
   }
 
@@ -81,21 +79,33 @@ export class EthereumService {
               toAddress: transaction.to,
               blockNumber: blockNumber.toString(),
               status: await this.getTransactionStatus(transaction.hash),
-              value: this.web3.utils.fromWei(transaction.value, 'ether'), // Преобразуем из wei в ETH
+              value: this.web3.utils.fromWei(transaction.value, 'ether'),
               timestamp: block.timestamp.toLocaleString(),
-              // timestamp: new Date(block.timestamp * 1000).toLocaleString(), // Преобразуем в миллисекунды
+              walletId: wallet.id,
+              // timestamp: new Date(block.timestamp * 1000).toLocaleString(), 
             });
           }
         }
       }
-      console.log('TX COUNT TO CREATE', transactions.length)
+      const transactionHashes = transactions.map(tx => tx.hash);
+      const existingTransactions = await this.prisma.transaction.findMany({
+        where: {
+          hash: { in: transactionHashes },
+        },
+        select: { hash: true },
+      });
+      const existingHashes = new Set(existingTransactions.map(tx => tx.hash));
+      const newTransactions = transactions.filter(tx => !existingHashes.has(tx.hash));
+
+      console.log('TX COUNT TO CREATE', newTransactions.length)
+
       await this.prisma.transaction.createMany({
-        data: transactions,
+        data: newTransactions,
       });
       console.log("UPDATE LAST BLOCK", lastSyncedBlockNumber.toString(), wallet.address)
       await this.walletService.updateLastSyncedBlockNumber(wallet.address, lastSyncedBlockNumber.toString())
     } catch (error) {
-      console.error('Ошибка при получении транзакций:', error);
+      console.error('Error while fetching transaction:', error);
     }
   }
 }
